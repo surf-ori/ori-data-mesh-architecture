@@ -2,7 +2,8 @@
 
 A proposal for the BROCCOLI data engineers: apply data mesh concepts (data products, data
 contracts, a data marketplace) to the ORI DuckLake, using the medallion architecture
-(staging, bronze, silver, gold) with dbt, DuckDB, DuckLake and the Data Contract CLI.
+(staging, bronze, silver, gold) with dbt, DuckDB, DuckLake, the Data Contract CLI and
+[Apache Ossie](https://ossie.apache.org/) for vendor-neutral data semantics.
 
 ## Contents
 
