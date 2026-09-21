@@ -29,5 +29,5 @@ The page is then served at `https://surf-ori.github.io/ori-data-mesh-architectur
 
 ## License
 
-TBD — add a LICENSE file before making this repository public, if it isn't already covered
-by a SURF ORI organization-wide license.
+[CC BY 4.0](LICENSE) — you're free to share and adapt this material for any purpose,
+even commercially, as long as you give appropriate credit.
