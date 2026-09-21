@@ -1,0 +1,92 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-organisations-v1
+name: Organisations
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the organisation filter and the member list: participating organisations with record counts
+    per source.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app). Built from nl-orgs.baseline in sprouts-dev
+    plus counts from silver. The prototype has no Crossref count yet.
+customProperties:
+- property: dashboardTab
+  value: About, filter bar
+- property: prototypeDataset
+  value: Organisations
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: organisations
+  physicalType: table
+  properties:
+  - name: id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: id
+    description: Short ID.
+    examples:
+    - vu
+  - name: name
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: name
+    description: Full name.
+  - name: ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: rorId
+    description: ROR ID without resolver prefix.
+  - name: abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: abbreviation
+    description: Short name.
+  - name: cris_publications
+    logicalType: integer
+    physicalType: BIGINT
+    businessName: crisPublications
+    description: Publications in the CRIS.
+  - name: cris_repository
+    logicalType: string
+    physicalType: VARCHAR
+    businessName: crisRepository
+    description: Host name of the CRIS or repository.
+  - name: openalex_publications
+    logicalType: integer
+    physicalType: BIGINT
+    businessName: openalexPublications
+    description: Publications in OpenAlex.
+  - name: openaire_publications
+    logicalType: integer
+    physicalType: BIGINT
+    businessName: openairePublications
+    description: Publications in OpenAIRE.
+  quality:
+  - type: sql
+    description: One row per ror_id.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT ror_id FROM organisations GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/organisations/*.parquet
+  format: parquet

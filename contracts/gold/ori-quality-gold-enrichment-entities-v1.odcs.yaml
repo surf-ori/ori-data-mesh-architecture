@@ -1,0 +1,147 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-enrichment-entities-v1
+name: Enrichment entities
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the Enrichment tab: per PID type, how many records in the primary source miss a valid value,
+    and how many of those can be recovered from each other source via the cross-source match.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app). Recovery uses the cross-source match
+    in silver (match_cluster_id): DOI where present, otherwise exact and fuzzy matching on other identifiers
+    and titles.
+customProperties:
+- property: dashboardTab
+  value: Enrichment
+- property: prototypeDataset
+  value: Enrichment entities
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: enrichment_entities
+  physicalType: table
+  properties:
+  - name: organisation_abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationAbbreviation
+    description: Short name of the organisation, as shown in the filter bar.
+    examples:
+    - VU Amsterdam
+  - name: organisation_ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationRorId
+    description: ROR ID of the organisation without resolver prefix.
+    examples:
+    - 008xxew50
+  - name: primary_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterPrimarySource
+    description: Source selected as primary. One of CRIS, OpenAlex, OpenAIRE, Crossref.
+  - name: entity_table
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterEntityTable
+    description: Entity type. Currently only Publications.
+  - name: publication_type
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterType
+    description: Publication type filter. 'All Types' rows hold the pre-aggregated total over all types.
+  - name: entity
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: entity
+    description: PID type. One of ror, orcid, doi, grant_doi.
+  - name: label
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: label
+    description: Label shown in the UI.
+    examples:
+    - ROR
+  - name: missing_percentage
+    logicalType: number
+    physicalType: DOUBLE
+    required: true
+    businessName: missingPercentage
+    description: 100 * missing_count / total_records.
+  - name: missing_count
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: missingCount
+    description: Records missing a valid value in the primary source.
+  - name: total_records
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: totalRecords
+    description: Records in scope.
+  - name: recoverable
+    logicalType: array
+    physicalType: STRUCT(source VARCHAR, percentage DOUBLE, count BIGINT)[]
+    required: true
+    businessName: recoverable
+    description: Per compare source, how many of the missing values can be recovered from it.
+    items:
+      logicalType: object
+      properties:
+      - name: source
+        logicalType: string
+        description: Compare source.
+      - name: percentage
+        logicalType: number
+        description: Share of missing values recoverable, in percent.
+      - name: count
+        logicalType: integer
+        description: Number of recoverable values.
+  quality:
+  - type: sql
+    description: One row per organisation_ror_id, primary_source, entity_table, publication_type, entity.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT organisation_ror_id, primary_source, entity_table, publication_type,
+      entity FROM enrichment_entities GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: missing_count never exceeds total_records.
+    query: >-
+      SELECT COUNT(*) FROM enrichment_entities WHERE missing_count > total_records
+    mustBe: 0
+  - type: sql
+    description: Only agreed PID types.
+    query: >-
+      SELECT COUNT(*) FROM enrichment_entities WHERE entity NOT IN ('ror','orcid','doi','grant_doi')
+    mustBe: 0
+  - type: sql
+    description: Only agreed source names.
+    query: >-
+      SELECT COUNT(*) FROM enrichment_entities WHERE primary_source NOT IN ('CRIS','OpenAlex','OpenAIRE','Crossref')
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/enrichment_entities/*.parquet
+  format: parquet

@@ -1,0 +1,133 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-completeness-metrics-v1
+name: Completeness metrics
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the metric cards on the Completeness tab: for the selected organisation, primary source, entity
+    and type, the share of records with a filled and valid value per metadata field. Based on the latest
+    snapshot of the primary source.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app).
+customProperties:
+- property: dashboardTab
+  value: Completeness
+- property: prototypeDataset
+  value: Completeness metrics
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: completeness_metrics
+  physicalType: table
+  properties:
+  - name: organisation_abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationAbbreviation
+    description: Short name of the organisation, as shown in the filter bar.
+    examples:
+    - VU Amsterdam
+  - name: organisation_ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationRorId
+    description: ROR ID of the organisation without resolver prefix.
+    examples:
+    - 008xxew50
+  - name: primary_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterPrimarySource
+    description: Source selected as primary. One of CRIS, OpenAlex, OpenAIRE, Crossref.
+  - name: entity_table
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterEntityTable
+    description: Entity type. Currently only Publications.
+  - name: publication_type
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterType
+    description: Publication type filter. 'All Types' rows hold the pre-aggregated total over all types.
+  - name: field
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: field
+    description: Metadata field. One of doi, orcid, ror, grant_doi, issn, oa_status, corresponding_author.
+  - name: label
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: label
+    description: Label shown on the card.
+    examples:
+    - Has DOI
+  - name: percentage
+    logicalType: number
+    physicalType: DOUBLE
+    required: true
+    businessName: percentage
+    description: 100 * filled / total, one decimal.
+  - name: total
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: total
+    description: Records in scope.
+  - name: filled
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: filled
+    description: Records with a filled and valid value.
+  quality:
+  - type: sql
+    description: One row per organisation_ror_id, primary_source, entity_table, publication_type, field.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT organisation_ror_id, primary_source, entity_table, publication_type,
+      field FROM completeness_metrics GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: filled never exceeds total.
+    query: >-
+      SELECT COUNT(*) FROM completeness_metrics WHERE filled > total
+    mustBe: 0
+  - type: sql
+    description: Percentage between 0 and 100.
+    query: >-
+      SELECT COUNT(*) FROM completeness_metrics WHERE percentage NOT BETWEEN 0 AND 100
+    mustBe: 0
+  - type: sql
+    description: Only agreed fields.
+    query: >-
+      SELECT COUNT(*) FROM completeness_metrics WHERE field NOT IN ('doi','orcid','ror','grant_doi','issn','oa_status','corresponding_author')
+    mustBe: 0
+  - type: sql
+    description: Only agreed source names.
+    query: >-
+      SELECT COUNT(*) FROM completeness_metrics WHERE primary_source NOT IN ('CRIS','OpenAlex','OpenAIRE','Crossref')
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/completeness_metrics/*.parquet
+  format: parquet

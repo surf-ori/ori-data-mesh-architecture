@@ -1,0 +1,123 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-accuracy-agreement-v1
+name: Accuracy agreement per field
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the Conflicts and Agreement lists on the Accuracy tab (proxy method: cross-source agreement
+    on matched records).
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app). The prototype hard-codes these figures;
+    this shape is inferred from the UI.
+customProperties:
+- property: dashboardTab
+  value: Accuracy
+- property: prototypeDataset
+  value: Not in Data tab; inferred from the Accuracy tab
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: accuracy_agreement
+  physicalType: table
+  properties:
+  - name: organisation_abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationAbbreviation
+    description: Short name of the organisation, as shown in the filter bar.
+    examples:
+    - VU Amsterdam
+  - name: organisation_ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationRorId
+    description: ROR ID of the organisation without resolver prefix.
+    examples:
+    - 008xxew50
+  - name: primary_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterPrimarySource
+    description: Source selected as primary. One of CRIS, OpenAlex, OpenAIRE, Crossref.
+  - name: entity_table
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterEntityTable
+    description: Entity type. Currently only Publications.
+  - name: publication_type
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterType
+    description: Publication type filter. 'All Types' rows hold the pre-aggregated total over all types.
+  - name: compare_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Source compared against the primary source.
+  - name: field
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Compared field. One of ror, orcid, author_list, publication_year.
+  - name: records_matched
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    description: Records in both sources, matched via match_cluster_id.
+  - name: agreements
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    description: Matched records with the same value.
+  - name: conflicts
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    description: Matched records with a different value.
+  quality:
+  - type: sql
+    description: One row per organisation_ror_id, primary_source, entity_table, publication_type, compare_source,
+      field.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT organisation_ror_id, primary_source, entity_table, publication_type,
+      compare_source, field FROM accuracy_agreement GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: Agreements and conflicts add up to matched records.
+    query: >-
+      SELECT COUNT(*) FROM accuracy_agreement WHERE agreements + conflicts <> records_matched
+    mustBe: 0
+  - type: sql
+    description: Only agreed fields.
+    query: >-
+      SELECT COUNT(*) FROM accuracy_agreement WHERE field NOT IN ('ror','orcid','author_list','publication_year')
+    mustBe: 0
+  - type: sql
+    description: Only agreed source names.
+    query: >-
+      SELECT COUNT(*) FROM accuracy_agreement WHERE primary_source NOT IN ('CRIS','OpenAlex','OpenAIRE','Crossref')
+      OR compare_source NOT IN ('CRIS','OpenAlex','OpenAIRE','Crossref')
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/accuracy_agreement/*.parquet
+  format: parquet

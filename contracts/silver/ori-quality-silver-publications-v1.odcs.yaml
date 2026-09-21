@@ -1,0 +1,283 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-silver-publications-v1
+name: ORI Quality Monitoring publications, unified across sources
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_publications
+description:
+  purpose: >-
+    One unified view of the publications of Dutch research organisations as they appear in each source,
+    per snapshot. Each row is one publication, as seen by one source in one snapshot, attributed to one
+    organisation. It contains exactly what the ORI Quality Monitoring gold tables need: presence and validity
+    of each field for Completeness and Enrichment, DOI and ROR for the Coverage match, and the values
+    themselves for the Accuracy comparison.
+  usage: Input for the gold data product ori_quality_monitor. Also open for analysts who want to run their
+    own quality analyses.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. The pid2portal schema
+    (openalex_NL_subset, openaire_NL_subset, *_NL_ror) is the closest existing starting point. Crossref
+    is not yet ingested in sprouts-dev. Scope per source: OpenAlex and OpenAIRE publications attributed
+    to an organisation via its ROR, and the publications from the own CRIS of that organisation. Records
+    are then matched across sources within the same organisation: exactly on DOI where present, otherwise
+    by exact and fuzzy matching on other identifiers and titles. Fuzzy matches carry a score, so gold
+    can choose a threshold. This is how missing DOIs in one source can be recovered from another.
+customProperties:
+- property: derivedFrom
+  value:
+  - ori-quality-gold-accuracy-agreement-v1
+  - ori-quality-gold-accuracy-conflict-records-v1
+  - ori-quality-gold-accuracy-timeline-v1
+  - ori-quality-gold-completeness-metrics-v1
+  - ori-quality-gold-completeness-timeline-v1
+  - ori-quality-gold-coverage-comparisons-v1
+  - ori-quality-gold-coverage-timeline-v1
+  - ori-quality-gold-detail-records-v1
+  - ori-quality-gold-enrichment-entities-v1
+  - ori-quality-gold-organisations-v1
+- property: inputPorts
+  value:
+  - 'sprouts-dev: openalex.works'
+  - 'sprouts-dev: openaire-11.1.1.publications, openaire-11.1.1.authorships'
+  - 'sprouts-dev: cris.publications'
+  - 'sprouts-dev: nl-orgs.baseline'
+  - 'sprouts-dev: pid2portal.* (intermediate starting point)'
+  - crossref (not yet in sprouts-dev)
+- property: presentInSproutsDev
+  value: false
+team:
+  name: broccoli-data-team
+schema:
+- name: ori_quality_publications
+  physicalType: table
+  description: 'Grain: one row per snapshot_date, source, source_record_id and organisation_ror.'
+  properties:
+  - name: snapshot_date
+    logicalType: date
+    physicalType: DATE
+    required: true
+    description: Date of the harvest (CRIS) or snapshot release (OpenAlex, OpenAIRE, Crossref) this row
+      comes from. Silver keeps every snapshot, because the dashboard timelines run on snapshot dates.
+  - name: snapshot_quarter
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: snapshot_date as YYYY-Qn, the time axis of the gold timelines.
+  - name: source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: One of CRIS, OpenAlex, OpenAIRE, Crossref.
+  - name: source_record_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: ID of the record in the source. OpenAlex works.id, OpenAIRE publications.id, CRIS "@id"
+      / header.identifier.
+  - name: source_url
+    logicalType: string
+    physicalType: VARCHAR
+    description: Landing page of the record in the source.
+  - name: match_cluster_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Cross-source cluster ID. All rows describing the same publication, within the same organisation,
+      share this ID. Used for Coverage, Enrichment and Accuracy.
+  - name: match_method
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: 'How the row was clustered: doi (exact DOI), identifier (exact match on another identifier),
+      title_exact, title_fuzzy, or none (no match found).'
+  - name: match_score
+    logicalType: number
+    physicalType: DOUBLE
+    description: Similarity score for title_fuzzy matches, 0 to 1. Null for exact methods.
+  - name: other_identifiers
+    logicalType: array
+    physicalType: STRUCT(scheme VARCHAR, value VARCHAR)[]
+    description: 'Other identifiers used for matching, as scheme and value: e.g. pmid, handle, isbn, scopus
+      (CRIS cerif:SCP-Number), isi (CRIS cerif:ISI-Number), openalex and openaire ids.'
+    items:
+      logicalType: object
+      properties:
+      - name: scheme
+        logicalType: string
+        description: Identifier scheme.
+      - name: value
+        logicalType: string
+        description: Normalised identifier value.
+  - name: title_normalised
+    logicalType: string
+    physicalType: VARCHAR
+    description: Title lower-cased, without punctuation, diacritics and extra whitespace, used for exact
+      and fuzzy title matching.
+  - name: organisation_ror
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: 'ROR of the organisation this row is attributed to, as https://ror.org/xxxxxxxxx. Scope:
+      organisations in nl-orgs.baseline.'
+  - name: organisation_ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Same ROR without resolver prefix, as used in gold and the UI.
+  - name: organisation_abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Short name from nl-orgs.baseline (acronym_EN).
+  - name: attribution_method
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: ror_affiliation (source lists the ROR on the record) or cris_repository (record comes
+      from the organisation's own CRIS, repository_info.ror).
+  - name: entity_table
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Entity type. Currently only Publications.
+  - name: publication_type
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Type mapped to one vocabulary across sources (OpenAlex type, OpenAIRE type, CRIS pubt:Type).
+  - name: title
+    logicalType: string
+    physicalType: VARCHAR
+    description: Title. OpenAlex title, OpenAIRE mainTitle, CRIS cerif:Title.
+  - name: publication_year
+    logicalType: integer
+    physicalType: INTEGER
+    description: Publication year.
+  - name: authors_display
+    logicalType: string
+    physicalType: VARCHAR
+    description: Author list for display, as "Family, I.; Family, I.".
+  - name: author_count
+    logicalType: integer
+    physicalType: INTEGER
+    description: Number of authors, used for the author list comparison on the Accuracy tab.
+  - name: doi
+    logicalType: string
+    physicalType: VARCHAR
+    description: DOI, lower case, without resolver prefix. OpenAlex doi, OpenAIRE pids (scheme doi), CRIS
+      cerif:DOI. The first match key between sources.
+  - name: doi_valid
+    logicalType: boolean
+    physicalType: BOOLEAN
+    description: doi matches the DOI syntax. Null when doi is null.
+  - name: affiliation_rors
+    logicalType: array
+    physicalType: VARCHAR[]
+    description: Distinct affiliation ROR IDs on the record, normalised and sorted.
+    items:
+      logicalType: string
+  - name: rors_valid
+    logicalType: boolean
+    physicalType: BOOLEAN
+    description: All affiliation RORs exist in the ROR registry. Null when empty.
+  - name: orcids
+    logicalType: array
+    physicalType: VARCHAR[]
+    description: Distinct ORCID iDs on the record, normalised as 0000-0000-0000-000X and sorted.
+    items:
+      logicalType: string
+  - name: orcids_valid
+    logicalType: boolean
+    physicalType: BOOLEAN
+    description: All ORCID iDs pass the checksum. Null when empty.
+  - name: grant_dois
+    logicalType: array
+    physicalType: VARCHAR[]
+    description: Distinct grant DOIs. OpenAlex awards/funders, OpenAIRE projects, CRIS cerif:OriginatesFrom
+      where it carries a DOI.
+    items:
+      logicalType: string
+  - name: issn
+    logicalType: string
+    physicalType: VARCHAR
+    description: ISSN-L, or the first ISSN when unknown. Format 1234-567X.
+  - name: issn_valid
+    logicalType: boolean
+    physicalType: BOOLEAN
+    description: issn passes the checksum. Null when issn is null.
+  - name: oa_status
+    logicalType: string
+    physicalType: VARCHAR
+    description: 'Open access status: diamond, gold, hybrid, green, bronze, closed. OpenAlex open_access,
+      OpenAIRE openAccessColor/bestAccessRight, CRIS ar:Access.'
+  - name: has_corresponding_author
+    logicalType: boolean
+    physicalType: BOOLEAN
+    required: true
+    description: Source marks at least one corresponding author (OpenAlex corresponding_author_ids).
+  - name: updated_at
+    logicalType: timestamp
+    physicalType: TIMESTAMP
+    required: true
+    description: When the dbt run wrote this row.
+  quality:
+  - type: sql
+    description: One row per snapshot_date, source, source_record_id, organisation_ror.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT snapshot_date, source, source_record_id, organisation_ror FROM ori_quality_publications
+      GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: Only agreed source names.
+    query: >-
+      SELECT COUNT(*) FROM ori_quality_publications WHERE source NOT IN ('CRIS','OpenAlex','OpenAIRE','Crossref')
+    mustBe: 0
+  - type: sql
+    description: Identifiers are normalised.
+    query: >-
+      SELECT COUNT(*) FROM ori_quality_publications WHERE (doi IS NOT NULL AND (doi LIKE 'http%' OR doi
+      <> lower(doi))) OR organisation_ror NOT LIKE 'https://ror.org/%' OR organisation_ror <> 'https://ror.org/'
+      || organisation_ror_id
+    mustBe: 0
+  - type: sql
+    description: Quarter matches the snapshot date.
+    query: >-
+      SELECT COUNT(*) FROM ori_quality_publications WHERE snapshot_quarter <> strftime(snapshot_date,
+      '%Y') || '-Q' || quarter(snapshot_date)
+    mustBe: 0
+  - type: sql
+    description: Validity flags are null exactly when there is nothing to validate.
+    query: >-
+      SELECT COUNT(*) FROM ori_quality_publications WHERE (doi IS NULL) <> (doi_valid IS NULL) OR (issn
+      IS NULL) <> (issn_valid IS NULL)
+    mustBe: 0
+  - type: sql
+    description: Match methods are known and fuzzy matches carry a score.
+    query: >-
+      SELECT COUNT(*) FROM ori_quality_publications WHERE match_method NOT IN ('doi','identifier','title_exact','title_fuzzy','none')
+      OR (match_method = 'title_fuzzy' AND match_score IS NULL) OR (match_method = 'doi' AND doi IS NULL)
+    mustBe: 0
+  - type: sql
+    description: Controlled vocabularies.
+    query: >-
+      SELECT COUNT(*) FROM ori_quality_publications WHERE attribution_method NOT IN ('ror_affiliation','cris_repository')
+      OR (oa_status IS NOT NULL AND oa_status NOT IN ('diamond','gold','hybrid','green','bronze','closed'))
+    mustBe: 0
+  - type: sql
+    description: CRIS, OpenAlex and OpenAIRE all present in the latest snapshot (guards against a silently
+      failed harvest).
+    query: >-
+      SELECT 3 - COUNT(DISTINCT source) FROM ori_quality_publications WHERE source IN ('CRIS','OpenAlex','OpenAIRE')
+      AND snapshot_quarter = (SELECT max(snapshot_quarter) FROM ori_quality_publications)
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/silver/ori_quality_publications/*.parquet
+  format: parquet

@@ -1,0 +1,128 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-coverage-comparisons-v1
+name: Coverage comparisons
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the stacked bar chart "Coverage: primary vs. other sources": per compare source, how many records
+    are only in the primary source, in both, or only in the compared source. Records are matched within
+    the same organisation (ROR) on DOI, and otherwise by exact and fuzzy matching on other identifiers
+    and titles.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app).
+customProperties:
+- property: dashboardTab
+  value: Coverage
+- property: prototypeDataset
+  value: Coverage comparisons
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: coverage_comparisons
+  physicalType: table
+  properties:
+  - name: organisation_abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationAbbreviation
+    description: Short name of the organisation, as shown in the filter bar.
+    examples:
+    - VU Amsterdam
+  - name: organisation_ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationRorId
+    description: ROR ID of the organisation without resolver prefix.
+    examples:
+    - 008xxew50
+  - name: primary_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterPrimarySource
+    description: Source selected as primary. One of CRIS, OpenAlex, OpenAIRE, Crossref.
+  - name: entity_table
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterEntityTable
+    description: Entity type. Currently only Publications.
+  - name: publication_type
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterType
+    description: Publication type filter. 'All Types' rows hold the pre-aggregated total over all types.
+  - name: compare_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: compareSource
+    description: Source compared against the primary source.
+  - name: only_in_primary
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: onlyInPrimary
+    description: Records of the organisation found only in the primary source.
+  - name: in_both
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: inBoth
+    description: 'Records found in both sources: same match_cluster_id, attributed to the same ROR.'
+  - name: only_in_compared
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: onlyInCompared
+    description: Records found only in the compared source.
+  - name: total
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    businessName: total
+    description: only_in_primary + in_both + only_in_compared.
+  quality:
+  - type: sql
+    description: One row per organisation_ror_id, primary_source, entity_table, publication_type, compare_source.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT organisation_ror_id, primary_source, entity_table, publication_type,
+      compare_source FROM coverage_comparisons GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: Total adds up.
+    query: >-
+      SELECT COUNT(*) FROM coverage_comparisons WHERE total <> only_in_primary + in_both + only_in_compared
+    mustBe: 0
+  - type: sql
+    description: A source is never compared with itself.
+    query: >-
+      SELECT COUNT(*) FROM coverage_comparisons WHERE compare_source = primary_source
+    mustBe: 0
+  - type: sql
+    description: Only agreed source names.
+    query: >-
+      SELECT COUNT(*) FROM coverage_comparisons WHERE primary_source NOT IN ('CRIS','OpenAlex','OpenAIRE','Crossref')
+      OR compare_source NOT IN ('CRIS','OpenAlex','OpenAIRE','Crossref')
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/coverage_comparisons/*.parquet
+  format: parquet

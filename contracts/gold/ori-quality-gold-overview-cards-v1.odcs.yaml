@@ -1,0 +1,63 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-overview-cards-v1
+name: Overview cards
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the "Key metrics" grid on the start page.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app).
+customProperties:
+- property: dashboardTab
+  value: About
+- property: prototypeDataset
+  value: Overview cards
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: overview_cards
+  physicalType: table
+  properties:
+  - name: title
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: title
+    description: Card title.
+    examples:
+    - Sources Monitored
+  - name: value
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: value
+    description: Value as displayed.
+  - name: details
+    logicalType: string
+    physicalType: VARCHAR
+    businessName: details
+    description: Explanation under the value.
+  quality:
+  - type: sql
+    description: One row per title.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT title FROM overview_cards GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/overview_cards/*.parquet
+  format: parquet

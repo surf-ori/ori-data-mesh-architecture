@@ -1,0 +1,106 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-accuracy-timeline-v1
+name: Accuracy conflict rate over time
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the "Conflict rate over time" chart in the Accuracy detail view.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app). The prototype hard-codes these figures;
+    this shape is inferred from the UI.
+customProperties:
+- property: dashboardTab
+  value: Accuracy
+- property: prototypeDataset
+  value: Not in Data tab; inferred from the Accuracy tab
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: accuracy_timeline
+  physicalType: table
+  properties:
+  - name: organisation_abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationAbbreviation
+    description: Short name of the organisation, as shown in the filter bar.
+    examples:
+    - VU Amsterdam
+  - name: organisation_ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationRorId
+    description: ROR ID of the organisation without resolver prefix.
+    examples:
+    - 008xxew50
+  - name: primary_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterPrimarySource
+    description: Source selected as primary. One of CRIS, OpenAlex, OpenAIRE, Crossref.
+  - name: entity_table
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterEntityTable
+    description: Entity type. Currently only Publications.
+  - name: publication_type
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterType
+    description: Publication type filter. 'All Types' rows hold the pre-aggregated total over all types.
+  - name: compare_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Source compared against the primary source.
+  - name: field
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Compared field.
+  - name: date
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Quarter of the harvest or snapshot, as YYYY-Qn.
+  - name: conflict_rate
+    logicalType: number
+    physicalType: DOUBLE
+    required: true
+    description: Conflicts / matched records, in percent.
+  quality:
+  - type: sql
+    description: One row per organisation_ror_id, primary_source, entity_table, publication_type, compare_source,
+      field, date.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT organisation_ror_id, primary_source, entity_table, publication_type,
+      compare_source, field, date FROM accuracy_timeline GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: Rate between 0 and 100.
+    query: >-
+      SELECT COUNT(*) FROM accuracy_timeline WHERE conflict_rate NOT BETWEEN 0 AND 100
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/accuracy_timeline/*.parquet
+  format: parquet

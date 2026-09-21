@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Why I hope BROCCOLI adopts data mesh architecture concepts for reliable data governance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFCFD; --ink:#18212B; --ink-soft:#4A5663; --rule:#D5DCE3; --code-bg:#EEF2F5;
+  --data-bg:#DDF2EE; --data-line:#1D8C80; --data-ink:#0B4A43;
+  --ctr-bg:#E7E4FB; --ctr-line:#5B4FC4; --ctr-ink:#2E2680;
+  --tool-bg:#EEF0F2; --tool-line:#7A8591; --tool-ink:#2C3640;
+  --lake-bg:#FFF6D1; --lake-line:#D9A800; --lake-ink:#6B5200;
+  --frame-bg:#FFFFFF; --link:#3A48B8;
+  --serif:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans:"Public Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12171D; --ink:#E6EBF0; --ink-soft:#A7B2BD; --rule:#2C3640; --code-bg:#1B222A;
+    --data-bg:#0F3A35; --data-line:#4FC2B4; --data-ink:#C9F1EA;
+    --ctr-bg:#27225A; --ctr-line:#9D94F0; --ctr-ink:#E1DDFF;
+    --tool-bg:#222A33; --tool-line:#8792A0; --tool-ink:#D8DEE5;
+    --lake-bg:#2B2510; --lake-line:#C9A227; --lake-ink:#F2DA8A;
+    --frame-bg:#171D24; --link:#9DA8FF;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12171D; --ink:#E6EBF0; --ink-soft:#A7B2BD; --rule:#2C3640; --code-bg:#1B222A;
+  --data-bg:#0F3A35; --data-line:#4FC2B4; --data-ink:#C9F1EA;
+  --ctr-bg:#27225A; --ctr-line:#9D94F0; --ctr-ink:#E1DDFF;
+  --tool-bg:#222A33; --tool-line:#8792A0; --tool-ink:#D8DEE5;
+  --lake-bg:#2B2510; --lake-line:#C9A227; --lake-ink:#F2DA8A;
+  --frame-bg:#171D24; --link:#9DA8FF;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:1.125rem;line-height:1.7;-webkit-font-smoothing:antialiased}
+main{max-width:44rem;margin:0 auto;padding:3.5rem 1.25rem 5rem}
+header.post{margin-bottom:2.5rem;border-bottom:1px solid var(--rule);padding-bottom:2rem}
+h1{font-family:var(--sans);font-weight:700;font-size:clamp(2rem,5vw,2.9rem);line-height:1.1;letter-spacing:-0.02em;margin:0 0 1.25rem}
+.lede{font-size:1.25rem;color:var(--ink-soft);margin:0}
+.byline{font-family:var(--sans);font-size:.9rem;color:var(--ink-soft);margin-top:1.25rem}
+h2{font-family:var(--sans);font-weight:700;font-size:1.45rem;line-height:1.25;letter-spacing:-0.01em;margin:3rem 0 .75rem}
+h3{font-family:var(--sans);font-weight:600;font-size:1.1rem;margin:2rem 0 .5rem}
+p{margin:0 0 1.15rem}
+a{color:var(--link);text-underline-offset:.15em;text-decoration-thickness:1px}
+a:focus-visible{outline:2px solid var(--link);outline-offset:2px;border-radius:2px}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.84em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+pre{background:var(--code-bg);border-radius:8px;padding:1rem 1.1rem;overflow-x:auto;font-size:.82rem;line-height:1.55;margin:0 0 1.5rem}
+pre code{background:none;padding:0;font-size:inherit}
+.table-wrap{overflow-x:auto;margin:0 0 1.5rem}
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.9rem;line-height:1.45}
+th,td{text-align:left;vertical-align:top;padding:.6rem .75rem;border-bottom:1px solid var(--rule)}
+th{font-weight:600;border-bottom:2px solid var(--ink)}
+td code{font-size:.8rem}
+figure{margin:2.25rem 0 2.5rem}
+figure.wide{margin-left:calc(50% - min(31rem, 48vw));margin-right:calc(50% - min(31rem, 48vw))}
+.fig-scroll{overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;min-width:640px}
+figcaption{font-family:var(--sans);font-size:.88rem;color:var(--ink-soft);margin-top:.75rem;max-width:44rem;margin-left:auto;margin-right:auto;padding:0 .25rem}
+svg .frame{fill:var(--frame-bg);stroke:var(--ink-soft);stroke-width:1;stroke-dasharray:6 4}
+svg .lake{fill:var(--lake-bg);stroke:var(--lake-line);stroke-width:1}
+svg .data rect{fill:var(--data-bg);stroke:var(--data-line);stroke-width:1}
+svg .data text{fill:var(--data-ink)}
+svg .ctr rect{fill:var(--ctr-bg);stroke:var(--ctr-line);stroke-width:1}
+svg .ctr text{fill:var(--ctr-ink)}
+svg .tool rect{fill:var(--tool-bg);stroke:var(--tool-line);stroke-width:1}
+svg .tool text{fill:var(--tool-ink)}
+svg text{font-family:var(--sans);fill:var(--ink)}
+svg .h{font-size:14px;font-weight:600}
+svg .s{font-size:12px;font-weight:400}
+svg .muted{fill:var(--ink-soft)}
+svg .lk{fill:var(--lake-ink)}
+svg .a-ctr{stroke:var(--ctr-line);stroke-width:1.5;fill:none}
+svg .a-neu{stroke:var(--ink-soft);stroke-width:1.2;fill:none}
+svg .a-dash{stroke:var(--ink-soft);stroke-width:1.2;fill:none;stroke-dasharray:4 3}
+svg .mk-ctr{stroke:var(--ctr-line)}
+svg .mk-neu{stroke:var(--ink-soft)}
+.note{border-left:3px solid var(--lake-line);background:var(--lake-bg);padding:1rem 1.2rem;border-radius:0 8px 8px 0;margin:0 0 1.5rem;font-size:1.02rem}
+.note p:last-child{margin-bottom:0}
+footer{margin-top:3.5rem;padding-top:1.5rem;border-top:1px solid var(--rule);font-family:var(--sans);font-size:.9rem;color:var(--ink-soft)}
+@media (max-width:600px){body{font-size:1.05rem}pre{font-size:.76rem}}
+</style>
+</head>
+<body>
+<main>
+<header class="post">
+<h1>Why I hope BROCCOLI adopts data mesh architecture concepts for reliable data governance</h1>
+<p class="lede">From harvested XML, JSON and PDF to a snappy dashboard, with data products, data contracts and open standards. A note to the BROCCOLI data engineers.</p>
+<p class="byline">Maurice Vanderfeesten, SURF Open Research Information</p>
+</header>
+
+<p>About a year ago I stumbled on something called <a href="https://www.datamesh-architecture.com/">data mesh architecture</a>. I read a bit, nodded a lot, and it never really left my head. The idea is simple: stop treating data as something a central team digs out of pipes, and start treating it as a product. Each dataset gets an owner, a clear description of what it offers, and a promise about its quality. What won me over is that it runs on open standards. The contracts follow the <a href="https://bitol-io.github.io/open-data-contract-standard/latest/">Open Data Contract Standard</a>, products can be described with the <a href="https://dataproduct-specification.com/">Data Product Specification</a>, and the tooling around it is open source. No vendor lock-in, which for open research infrastructure is kind of the point.</p>
+
+<p>Then yesterday I learned that the Dutch police use this approach too. They bring together data from lots of different sources, with different teams responsible for their own part, on an open source stack. That made me sit up. If it works for an organisation that big, with that many sources and owners, it can surely work for us. Because our situation looks surprisingly similar: OpenAlex, OpenAIRE, Crossref, ROR, OpenAPC, the Netherlands Research Portal and a CRIS system at every institution, each with its own quirks and its own people behind it.</p>
+
+<p>So this post is my pitch to the BROCCOLI team. I really hope you pick this up, and I want to help you start on the right foot. Open Research Information (ORI) is a big field and our lake will serve many purposes, but let's focus on one: <strong>ORI Quality Monitoring</strong>. That's the dashboard that shows data stewards how complete and consistent the metadata about their institution is, where the gaps are, and what they can do about them.</p>
+
+<h2>The three ideas we borrow</h2>
+
+<p>We're not a big company with twenty domain teams, so we won't do data mesh by the book. But three of its building blocks solve problems we will definitely run into.</p>
+
+<p>First, the <strong>data product</strong>. Think of it as more than a table or a pipeline. It's a bundle of a pipeline (the code that builds it), the data it produces, a contract describing what it offers, and, importantly, a team or curator who is responsible for it. The messy raw and intermediate tables stay inside. Other people only touch what the product officially offers, its output ports.</p>
+
+<p>Second, the <strong>data contract</strong>. That's a YAML file describing an output port: schema, meaning of each field, quality rules, how fresh it is, who owns it. Humans can read it, machines can test against it. So the same file is both our agreement and our test suite. Nice.</p>
+
+<p>Third, the <strong>data marketplace</strong>: one place where people find data products they can trust. Jochen Christ wrote <a href="https://www.entropy-data.com/learn/data-catalog-vs-data-marketplace">a good piece on why that's not the same as a data catalog</a>. A catalog happily indexes every table it can find, and before you know it you have thousands of mystery tables nobody feels responsible for. A marketplace only shows the finished products, each with an owner and a contract.</p>
+
+<p>On top of that, data mesh talks about federated governance, which sounds heavy but just means: we agree on a few rules together, and each product owner makes sure they're met. Think of rules like "identifiers are always normalised the same way", "every output port has a contract" and "contracts only change through a pull request".</p>
+
+<h2>What it looks like</h2>
+
+<p>Here's the whole thing in one picture. I drew it with the consumers at the top, because that's where the design starts (more on that below). Data flows upwards, from the sources at the bottom to the dashboard at the top. Every dashed frame is one data product, with its own owner, pipeline, data and contract. Everything lives in the ORI DuckLake on SURF Object Store.</p>
+
+<figure class="wide">
+<div class="fig-scroll">
+<svg viewBox="0 0 960 920" role="img" aria-labelledby="f1t f1d">
+<title id="f1t">ORI Quality Monitoring as data products in the ORI DuckLake</title>
+<desc id="f1d">External sources at the bottom feed four source-aligned data products (OpenAlex works, OpenAIRE publications, CRIS per institution, Crossref works). Their contracts feed the aggregate data product ori_quality_publications, whose contract feeds the consumer-aligned data product ori_quality_monitor. Each data product has an owner, a dbt and DuckDB pipeline, data and a contract. All data sits in the ORI DuckLake on SURF Object Store. At the top, the ORI Quality Monitoring dashboard reads the gold output ports, while the DuckLake Overview and the ORI DuckLake MCP, by-products open to everyone, read the whole catalog.</desc>
+<defs>
+<marker id="m-ctr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" class="mk-ctr" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="m-neu" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" class="mk-neu" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<text class="s muted" x="690" y="26" text-anchor="middle">By-products, open to everyone</text>
+<g class="tool"><rect x="40" y="38" width="380" height="56" rx="8"/><text class="h" x="230" y="60" text-anchor="middle">ORI Quality Monitoring dashboard</text><text class="s" x="230" y="79" text-anchor="middle">Main deliverable, reads gold</text></g>
+<g class="tool"><rect x="460" y="38" width="220" height="56" rx="8"/><text class="h" x="570" y="60" text-anchor="middle">DuckLake Overview</text><text class="s" x="570" y="79" text-anchor="middle">Browse schemas and columns</text></g>
+<g class="tool"><rect x="700" y="38" width="220" height="56" rx="8"/><text class="h" x="810" y="60" text-anchor="middle">ORI DuckLake MCP</text><text class="s" x="810" y="79" text-anchor="middle">Chat with the lake</text></g>
+<rect class="lake" x="20" y="128" width="920" height="630" rx="16"/>
+<line class="a-ctr" x1="380" y1="160" x2="380" y2="98" marker-end="url(#m-ctr)"/>
+<line class="a-dash" x1="570" y1="126" x2="570" y2="98" marker-end="url(#m-neu)"/>
+<line class="a-dash" x1="810" y1="126" x2="810" y2="98" marker-end="url(#m-neu)"/>
+<rect class="frame" x="200" y="162" width="560" height="138" rx="12"/>
+<text class="h" x="480" y="184" text-anchor="middle">Data product: ori_quality_monitor</text>
+<text class="s muted" x="480" y="202" text-anchor="middle">Consumer-aligned. Owner: ORI Quality Monitoring team</text>
+<g class="tool"><rect x="215" y="220" width="150" height="56" rx="8"/><text class="h" x="290" y="242" text-anchor="middle">Pipeline</text><text class="s" x="290" y="261" text-anchor="middle">dbt + DuckDB</text></g>
+<g class="data"><rect x="385" y="220" width="170" height="56" rx="8"/><text class="h" x="470" y="242" text-anchor="middle">Gold tables</text><text class="s" x="470" y="261" text-anchor="middle">Small, pre-aggregated</text></g>
+<g class="ctr"><rect x="575" y="220" width="170" height="56" rx="8"/><text class="h" x="660" y="242" text-anchor="middle">Gold contracts</text><text class="s" x="660" y="261" text-anchor="middle">One per widget</text></g>
+<line class="a-ctr" x1="660" y1="338" x2="660" y2="304" marker-end="url(#m-ctr)"/>
+<rect class="frame" x="200" y="340" width="560" height="138" rx="12"/>
+<text class="h" x="480" y="362" text-anchor="middle">Data product: ori_quality_publications</text>
+<text class="s muted" x="480" y="380" text-anchor="middle">Aggregate. Owner: BROCCOLI data team</text>
+<g class="tool"><rect x="215" y="398" width="150" height="56" rx="8"/><text class="h" x="290" y="420" text-anchor="middle">Pipeline</text><text class="s" x="290" y="439" text-anchor="middle">dbt + DuckDB</text></g>
+<g class="data"><rect x="385" y="398" width="170" height="56" rx="8"/><text class="h" x="470" y="420" text-anchor="middle">Silver table</text><text class="s" x="470" y="439" text-anchor="middle">Unified publications</text></g>
+<g class="ctr"><rect x="575" y="398" width="170" height="56" rx="8"/><text class="h" x="660" y="420" text-anchor="middle">Silver contract</text><text class="s" x="660" y="439" text-anchor="middle">Derived from gold</text></g>
+<line class="a-ctr" x1="142" y1="526" x2="296" y2="483" marker-end="url(#m-ctr)"/>
+<line class="a-ctr" x1="367" y1="526" x2="416" y2="483" marker-end="url(#m-ctr)"/>
+<line class="a-ctr" x1="592" y1="526" x2="544" y2="483" marker-end="url(#m-ctr)"/>
+<line class="a-ctr" x1="817" y1="526" x2="664" y2="483" marker-end="url(#m-ctr)"/>
+<rect class="frame" x="40" y="528" width="205" height="202" rx="12"/>
+<text class="h" x="142.5" y="549" text-anchor="middle">openalex_works</text>
+<text class="s muted" x="142.5" y="567" text-anchor="middle">Source-aligned data product</text>
+<text class="s muted" x="142.5" y="583" text-anchor="middle">Owner: BROCCOLI data team</text>
+<g class="ctr"><rect x="55" y="596" width="175" height="36" rx="7"/><text class="h" x="142.5" y="619" text-anchor="middle">Bronze contract</text></g>
+<g class="data"><rect x="55" y="640" width="175" height="36" rx="7"/><text class="h" x="142.5" y="663" text-anchor="middle">Bronze + staging</text></g>
+<g class="tool"><rect x="55" y="684" width="175" height="36" rx="7"/><text class="h" x="142.5" y="707" text-anchor="middle">Ingest + dbt</text></g>
+<rect class="frame" x="265" y="528" width="205" height="202" rx="12"/>
+<text class="h" x="367.5" y="549" text-anchor="middle">openaire_publications</text>
+<text class="s muted" x="367.5" y="567" text-anchor="middle">Source-aligned data product</text>
+<text class="s muted" x="367.5" y="583" text-anchor="middle">Owner: BROCCOLI data team</text>
+<g class="ctr"><rect x="280" y="596" width="175" height="36" rx="7"/><text class="h" x="367.5" y="619" text-anchor="middle">Bronze contract</text></g>
+<g class="data"><rect x="280" y="640" width="175" height="36" rx="7"/><text class="h" x="367.5" y="663" text-anchor="middle">Bronze + staging</text></g>
+<g class="tool"><rect x="280" y="684" width="175" height="36" rx="7"/><text class="h" x="367.5" y="707" text-anchor="middle">Ingest + dbt</text></g>
+<rect class="frame" x="490" y="528" width="205" height="202" rx="12"/>
+<text class="h" x="592.5" y="549" text-anchor="middle">cris_&lt;institution&gt;</text>
+<text class="s muted" x="592.5" y="567" text-anchor="middle">One per institution</text>
+<text class="s muted" x="592.5" y="583" text-anchor="middle">Owner: institution curator</text>
+<g class="ctr"><rect x="505" y="596" width="175" height="36" rx="7"/><text class="h" x="592.5" y="619" text-anchor="middle">Bronze contract</text></g>
+<g class="data"><rect x="505" y="640" width="175" height="36" rx="7"/><text class="h" x="592.5" y="663" text-anchor="middle">Bronze + staging</text></g>
+<g class="tool"><rect x="505" y="684" width="175" height="36" rx="7"/><text class="h" x="592.5" y="707" text-anchor="middle">Ingest + dbt</text></g>
+<rect class="frame" x="715" y="528" width="205" height="202" rx="12"/>
+<text class="h" x="817.5" y="549" text-anchor="middle">crossref_works</text>
+<text class="s muted" x="817.5" y="567" text-anchor="middle">Not yet in sprouts-dev</text>
+<text class="s muted" x="817.5" y="583" text-anchor="middle">Owner: BROCCOLI data team</text>
+<g class="ctr"><rect x="730" y="596" width="175" height="36" rx="7"/><text class="h" x="817.5" y="619" text-anchor="middle">Bronze contract</text></g>
+<g class="data"><rect x="730" y="640" width="175" height="36" rx="7"/><text class="h" x="817.5" y="663" text-anchor="middle">Bronze + staging</text></g>
+<g class="tool"><rect x="730" y="684" width="175" height="36" rx="7"/><text class="h" x="817.5" y="707" text-anchor="middle">Ingest + dbt</text></g>
+<text class="h lk" x="40" y="151">ORI DuckLake on SURF Object Store</text>
+<text class="s lk" x="920" y="151" text-anchor="end">One catalog + Parquet files, read with DuckDB anywhere</text>
+<line class="a-neu" x1="142" y1="788" x2="142" y2="734" marker-end="url(#m-neu)"/>
+<line class="a-neu" x1="367" y1="788" x2="367" y2="734" marker-end="url(#m-neu)"/>
+<line class="a-neu" x1="592" y1="788" x2="592" y2="734" marker-end="url(#m-neu)"/>
+<line class="a-neu" x1="817" y1="788" x2="817" y2="734" marker-end="url(#m-neu)"/>
+<g class="tool"><rect x="40" y="790" width="880" height="44" rx="8"/><text class="h" x="480" y="817" text-anchor="middle">External sources: OpenAlex, OpenAIRE, CRIS systems, Crossref (XML, JSON, PDF)</text></g>
+<rect class="frame" x="40" y="866" width="22" height="14" rx="3"/>
+<text class="s" x="70" y="877">Data product: owner, pipeline, data, contract</text>
+<g class="data"><rect x="380" y="866" width="14" height="14" rx="3"/></g>
+<text class="s" x="402" y="877">Data</text>
+<g class="ctr"><rect x="460" y="866" width="14" height="14" rx="3"/></g>
+<text class="s" x="482" y="877">Contract, the output port, tested with datacontract-cli</text>
+<rect class="lake" x="40" y="892" width="22" height="14" rx="3"/>
+<text class="s" x="70" y="903">ORI DuckLake, published as a read-only catalog</text>
+<g class="tool"><rect x="380" y="892" width="14" height="14" rx="3"/></g>
+<text class="s" x="402" y="903">Pipelines, consumers and sources</text>
+</svg>
+</div>
+<figcaption>Data flows up from the sources, through the data products, to the consumers. Products only talk to each other through contracts (purple arrows). The dashboard reads the gold output ports. The DuckLake Overview and the MCP server read the whole public catalog.</figcaption>
+</figure>
+
+<h2>Medallion layers, data mesh style</h2>
+
+<p>You probably know the medallion architecture: staging, bronze, silver, gold. Here's how those layers map onto data products, with the names we'd use for ORI Quality Monitoring.</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Layer</th><th>What it holds</th><th>Data product</th><th>Owner</th></tr></thead>
+<tbody>
+<tr><td>Staging</td><td>Raw downloads as they arrive: XML, JSON, CSV, PDF, plus a manifest</td><td>Not a product; internal to each source-aligned product</td><td>Same as bronze</td></tr>
+<tr><td>Bronze</td><td>The same data as typed Parquet in DuckLake, one product per source</td><td>Source-aligned: <code>openalex_works</code>, <code>openaire_publications</code>, <code>cris_&lt;institution&gt;</code>, <code>crossref_works</code>. In sprouts-dev today: schemas <code>openalex</code>, <code>openaire-11.1.1</code>, <code>cris</code>; Crossref not yet</td><td>BROCCOLI data team; the institution's curator for its CRIS</td></tr>
+<tr><td>Silver</td><td>One unified publication table for ORI Quality Monitoring</td><td>Aggregate: <code>ori_quality_publications</code>. Not in sprouts-dev yet; <code>pid2portal</code> is the closest starting point</td><td>BROCCOLI data team</td></tr>
+<tr><td>Gold</td><td>Small, pre-aggregated tables, one per dashboard widget</td><td>Consumer-aligned: <code>ori_quality_monitor</code>. Not in sprouts-dev yet</td><td>ORI Quality Monitoring team (dashboard owner)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>Staging</strong> is just the landing zone: buckets with the files exactly as we got them, plus a small manifest (source, harvest date, path, checksum). We never touch those files, which makes every later step reproducible. PDFs live here too, for later enrichment. Nobody outside the product reads from staging.</p>
+
+<p><strong>Bronze</strong> turns each source into a proper source-aligned product. Stay close to the source: flatten, cast types, deduplicate, but don't reinterpret. Think of it as a shock absorber. When OpenAlex changes its schema again, the damage stops here. DuckDB doesn't read XML natively, so a small Python step converts XML first, and PDFs stay files that a bronze table points to. And note: bronze products aren't specific to ORI Quality Monitoring. Everyone using the lake benefits from them, so they don't get the <code>ori_quality</code> prefix.</p>
+
+<p><strong>Silver</strong> is where ORI Quality Monitoring really starts. We take the publications of the Dutch organisations in scope (the list in <code>nl-orgs.baseline</code>) from all bronze sources and put them in one table, with exactly the fields the gold tables need. Every row remembers which source said what, because comparing sources is half the fun of quality monitoring. Matching is where silver earns its keep. We take the OpenAlex and OpenAIRE publications that carry the organisation's ROR, plus the publications from its own CRIS, and match them across sources: exactly on DOI where there is one, and otherwise with exact and fuzzy matching on other identifiers and titles. Every row gets a cluster ID, the method that matched it and, for fuzzy matches, a score. That is also how a DOI that is missing in the CRIS can be found in OpenAlex or OpenAIRE. And silver keeps every snapshot, not just the latest one, because the dashboard shows how quality develops over successive harvests. In sprouts-dev, the <code>pid2portal</code> schema with its NL subsets of OpenAlex and OpenAIRE is the closest thing to silver we have today.</p>
+
+<p><strong>Gold</strong> exists for one reason: making the dashboard feel quick. The prototype has four tabs (Coverage, Completeness, Enrichment and Accuracy), and every chart or table on them gets its own small, pre-aggregated table. Narrow, already filtered, already grouped, including a ready-made "All Types" total so the UI never has to add things up. If a widget still has to scan silver when someone clicks, the gold table isn't done yet.</p>
+
+<p>A quick word on names. A data product called <code>ori_quality_publications</code> lives in a repository called <code>data_product_ori_quality_publications</code>. The dbt pipeline is one part of that repo, next to the contracts and the product description.</p>
+
+<h2>Start with the user journey, not with the data</h2>
+
+<p>This is the bit I care about most. It's so tempting to start at the sources and build "everything that might come in handy" upwards. I've seen where that ends: a huge silver table full of columns nobody asked for, and a dashboard that still misses what users actually need.</p>
+
+<p>So let's design the other way round. In the UI design workshop with Barcelona Declaration signatories we sketched real screens and agreed on what a data steward needs to see. That became the <a href="https://ori-dashboard.lovable.app">ORI Quality Monitoring prototype</a>, and here's a gift: its Data tab already lists the datasets behind every widget, with their columns. Those are our gold contracts, waiting to be written down. From all gold contracts together we work out the silver contract: exactly the fields and grain gold needs, plus keys to trace records back. Only then do we start building, bottom-up, with dbt.</p>
+
+<p>Bronze contracts are the exception. They don't depend on the user journey, because they simply describe what we receive. You can write them straight away, in parallel, and often get a head start by generating them from a sample file with <code>datacontract import parquet</code> or <code>datacontract import json</code>. Where the two directions meet, at silver, you do a reality check: can the sources actually deliver what the dashboard needs? If not, have that chat with the dashboard owner before anyone writes a line of SQL.</p>
+
+<figure class="wide">
+<div class="fig-scroll">
+<svg viewBox="0 0 960 410" role="img" aria-labelledby="f2t f2d">
+<title id="f2t">The order in which contracts are designed, for every BROCCOLI use case</title>
+<desc id="f2d">Four use cases each start with a user journey: ORI Quality Monitoring, publisher deals, open science monitoring and research evaluation. Each user journey leads to its own gold contracts, prefixed per use case. All gold contracts feed into shared silver contracts, after which pipelines are built bottom-up with dbt. In parallel, bronze contracts describe what the external sources deliver; they are shared by all use cases and checked against the silver contracts.</desc>
+<defs>
+<marker id="m2-ctr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" class="mk-ctr" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="m2-neu" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" class="mk-neu" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<text class="h muted" x="140" y="28" text-anchor="middle">1. User journeys</text>
+<text class="h muted" x="380" y="28" text-anchor="middle">2. Gold contracts</text>
+<text class="h muted" x="615" y="28" text-anchor="middle">3. Silver contracts</text>
+<text class="h muted" x="845" y="28" text-anchor="middle">4. Pipelines</text>
+<g class="tool"><rect x="40" y="44" width="200" height="48" rx="8"/><text class="h" x="140" y="73" text-anchor="middle">ORI Quality Monitoring</text></g>
+<g class="ctr"><rect x="280" y="44" width="200" height="48" rx="8"/><text class="h" x="380" y="73" text-anchor="middle">ori_quality_*</text></g>
+<line class="a-ctr" x1="242" y1="68" x2="276" y2="68" marker-end="url(#m2-ctr)"/>
+<line class="a-ctr" x1="482" y1="68" x2="516" y2="68" marker-end="url(#m2-ctr)"/>
+<g class="tool"><rect x="40" y="104" width="200" height="48" rx="8" stroke-dasharray="5 4"/><text class="h" x="140" y="133" text-anchor="middle">Publisher deals</text></g>
+<g class="ctr"><rect x="280" y="104" width="200" height="48" rx="8" stroke-dasharray="5 4"/><text class="h" x="380" y="133" text-anchor="middle">publisher_deals_*</text></g>
+<line class="a-ctr" x1="242" y1="128" x2="276" y2="128" marker-end="url(#m2-ctr)"/>
+<line class="a-ctr" x1="482" y1="128" x2="516" y2="128" marker-end="url(#m2-ctr)"/>
+<g class="tool"><rect x="40" y="164" width="200" height="48" rx="8" stroke-dasharray="5 4"/><text class="h" x="140" y="193" text-anchor="middle">Open science monitoring</text></g>
+<g class="ctr"><rect x="280" y="164" width="200" height="48" rx="8" stroke-dasharray="5 4"/><text class="h" x="380" y="193" text-anchor="middle">os_monitoring_*</text></g>
+<line class="a-ctr" x1="242" y1="188" x2="276" y2="188" marker-end="url(#m2-ctr)"/>
+<line class="a-ctr" x1="482" y1="188" x2="516" y2="188" marker-end="url(#m2-ctr)"/>
+<g class="tool"><rect x="40" y="224" width="200" height="48" rx="8" stroke-dasharray="5 4"/><text class="h" x="140" y="253" text-anchor="middle">Research evaluation</text></g>
+<g class="ctr"><rect x="280" y="224" width="200" height="48" rx="8" stroke-dasharray="5 4"/><text class="h" x="380" y="253" text-anchor="middle">research_evaluation_*</text></g>
+<line class="a-ctr" x1="242" y1="248" x2="276" y2="248" marker-end="url(#m2-ctr)"/>
+<line class="a-ctr" x1="482" y1="248" x2="516" y2="248" marker-end="url(#m2-ctr)"/>
+<g class="ctr"><rect x="520" y="44" width="190" height="228" rx="8"/><text class="h" x="615" y="150" text-anchor="middle">Silver contracts</text><text class="s" x="615" y="170" text-anchor="middle">Shared where possible</text></g>
+<g class="tool"><rect x="750" y="44" width="190" height="228" rx="8"/><text class="h" x="845" y="150" text-anchor="middle">Pipelines</text><text class="s" x="845" y="170" text-anchor="middle">dbt builds bottom-up</text></g>
+<line class="a-neu" x1="712" y1="158" x2="746" y2="158" marker-end="url(#m2-neu)"/>
+<g class="tool"><rect x="280" y="330" width="200" height="56" rx="8"/><text class="h" x="380" y="352" text-anchor="middle">External sources</text><text class="s" x="380" y="371" text-anchor="middle">What we receive</text></g>
+<g class="ctr"><rect x="520" y="330" width="190" height="56" rx="8"/><text class="h" x="615" y="352" text-anchor="middle">Bronze contracts</text><text class="s" x="615" y="371" text-anchor="middle">Shared by all use cases</text></g>
+<line class="a-neu" x1="482" y1="358" x2="516" y2="358" marker-end="url(#m2-neu)"/>
+<line class="a-ctr" x1="615" y1="328" x2="615" y2="276" marker-end="url(#m2-ctr)"/>
+<text class="s muted" x="625" y="306">Gap check</text>
+</svg>
+</div>
+<figcaption>Every BROCCOLI use case follows the same recipe: user journey first, then its own gold contracts. Silver and bronze are shared, so each new use case mostly adds its own gold. Solid boxes are what this post covers; dashed boxes are the other use cases from the BROCCOLI proposal.</figcaption>
+</figure>
+
+<p>The folks at Entropy Data describe the same habit in <a href="https://www.entropy-data.com/learn/data-products-with-dbt">their guide to data products with dbt</a>: write the contract first, as your requirements, and your product stays small and focused. For BROCCOLI I'd love to turn that into a house rule: <strong>no silver or gold table without a contract that traces back to something a user needs</strong>. A new silver column needs a gold contract that uses it. A new bronze source needs a silver field it improves.</p>
+
+<p>And here's the thing: none of this is specific to ORI Quality Monitoring. The <a href="https://communities.surf.nl/files/Artikel/download/Broccoli-full-proposalv1-3_budgetencontactinofremoved.pdf">BROCCOLI proposal</a> names three use cases: monitoring publisher deals, open science monitoring and responsible research evaluation, and it explicitly leaves room for more. The recipe is the same for each one. Sit down with the users, sketch what they need to see, turn every widget or report into a gold contract, and derive the rest from there. Each use case gets its own consumer-aligned data product, for example with a <code>publisher_deals</code> or <code>os_monitoring</code> prefix, just like <code>ori_quality</code> here.</p>
+
+<p>The nice part is how much gets reused. The source-aligned bronze products are shared by everyone, so OpenAlex only has to be harvested and cleaned once. Silver products can often be shared too, or grow a few columns when a new gold contract asks for them. A new use case mostly adds its own gold, and sometimes its own silver. The use cases are also at different stages, and contract-first helps with all of them. Publisher deal monitoring builds on UKBsis and is the most mature, so its existing reports are basically contracts waiting to be written down. Responsible research evaluation is still exploratory, and there the contract-first habit is even more valuable, because it forces the question "what do users actually need?" before we build anything. And the proposal's promise that institutions take ownership of their data quality fits nicely with data products that each have a named owner.</p>
+
+<div class="note">
+<p><strong>A heads-up on the examples.</strong> The gold and silver tables in this post don't exist yet in the sprouts-dev catalog. The contracts are best-guess examples, but rooted in reality. The gold contracts follow the datasets in the prototype's Data tab one to one, with the prototype's own column names recorded as <code>businessName</code>. Three Accuracy contracts are inferred from the Accuracy tab itself, because the prototype hard-codes those figures. The silver contract is derived from the gold contracts and mapped to the tables that are in sprouts-dev today: <code>openalex.works</code>, <code>openaire-11.1.1.publications</code>, <code>cris.publications</code>, <code>nl-orgs.baseline</code> and <code>pid2portal</code>. So treat them as a well-informed first draft for the team to correct, not as a finished design.</p>
+</div>
+
+<p>To make it concrete, here's a shortened gold contract for the metric cards on the Completeness tab: "Has DOI", "Has ORCID", "Has ROR" and so on. Note that the progress chart below those cards gets its own contract, because its time axis is the harvest or snapshot date, not the publication year. Different grain, different output port.</p>
+
+<pre><code># ori-quality-gold-completeness-metrics-v1.odcs.yaml (shortened)
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-completeness-metrics-v1
+name: Completeness metrics
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >
+    Feeds the metric cards on the Completeness tab: for the selected organisation,
+    primary source, entity and type, the share of records with a filled and valid
+    value per metadata field. Based on the latest snapshot of the primary source.
+  limitations: >
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog.
+customProperties:
+  - property: dashboardTab
+    value: Completeness
+  - property: prototypeDataset
+    value: Completeness metrics
+team:
+  name: ori-quality-monitoring-team
+schema:
+  - name: completeness_metrics
+    physicalType: table
+    properties:
+      - name: organisation_ror_id
+        logicalType: string
+        required: true
+        businessName: filterOrganisationRorId
+        description: ROR ID of the organisation without resolver prefix.
+        examples: [008xxew50]
+      - name: primary_source
+        logicalType: string
+        required: true
+        businessName: filterPrimarySource
+        description: One of CRIS, OpenAlex, OpenAIRE, Crossref.
+      - name: entity_table
+        logicalType: string
+        required: true
+        businessName: filterEntityTable
+        description: Entity type. Currently only Publications.
+      - name: publication_type
+        logicalType: string
+        required: true
+        businessName: filterType
+        description: "'All Types' rows hold the pre-aggregated total over all types."
+      - name: field
+        logicalType: string
+        required: true
+        description: One of doi, orcid, ror, grant_doi, issn, oa_status, corresponding_author.
+      - name: label
+        logicalType: string
+        required: true
+        examples: [Has DOI]
+      - name: percentage
+        logicalType: number
+        required: true
+        description: 100 * filled / total, one decimal.
+      - name: total
+        logicalType: integer
+        required: true
+      - name: filled
+        logicalType: integer
+        required: true
+        description: Records with a filled and valid value.
+    quality:
+      - type: sql
+        description: filled never exceeds total.
+        query: SELECT COUNT(*) FROM completeness_metrics WHERE filled &gt; total
+        mustBe: 0
+servers:
+  - server: development
+    type: s3
+    endpointUrl: https://objectstore.surf.nl
+    location: s3://sprouts-dev/ori_quality/gold/completeness_metrics/*.parquet
+    format: parquet</code></pre>
+
+<p>Not much in there, right? That's the point. Whoever builds the cards can read this and know exactly what they'll get. And the <code>prototypeDataset</code> property links it straight back to the dataset in the prototype.</p>
+
+<h2>The tech stack: dbt, DuckDB, DuckLake and the Data Contract CLI</h2>
+
+<p>The data mesh site has a nice write-up of a <a href="https://www.datamesh-architecture.com/tech-stacks/dbt-snowflake">dbt and Snowflake stack</a>. We keep the dbt part and swap the expensive warehouse for something open and serverless.</p>
+
+<p><a href="https://ducklake.select/">DuckLake</a> is our catalog. It stores tables as Parquet files on SURF Object Store and keeps schemas, snapshots and column comments in one small catalog file. Since the whole lake is just files, we can publish it read-only as a <a href="https://ducklake.select/2025/10/24/frozen-ducklake/">frozen DuckLake</a> for anyone to query. <a href="https://duckdb.org/">DuckDB</a> does the actual work: it runs the SQL on your laptop, in CI, or even in a browser. <a href="https://www.getdbt.com/">dbt</a> writes and tests the transformations, and talks to DuckDB and DuckLake through the <a href="https://github.com/duckdb/dbt-duckdb">dbt-duckdb adapter</a>. And the <a href="https://cli.datacontract.com/">Data Contract CLI</a> lints the contracts, generates dbt model YAML from them, and tests our output ports against them. No database servers to babysit, which is exactly what we already tried out in the <a href="https://surf-ori.github.io/sprouts/">sprouts catalog</a>.</p>
+
+<p>I'd go for one dbt project per data product, each with its own contracts and CI. Inside a product, only the <code>output_ports/</code> folder is public. Everything else is yours to refactor whenever you like. The silver product could look like this:</p>
+
+<pre><code>data_product_ori_quality_publications/
+├── dbt_project.yml
+├── ori_quality_publications.odps.yaml        # data product description, incl. owner
+├── models/
+│   ├── input_ports/                          # bronze products we consume, with a cached copy of their contracts
+│   │   ├── openalex_works.source.yml          # sprouts-dev: openalex.works
+│   │   ├── openalex_works.odcs.yaml
+│   │   ├── openaire_publications.source.yml
+│   │   ├── cris_publications.source.yml       # sprouts-dev: cris.publications
+│   │   ├── crossref_works.source.yml          # not yet in sprouts-dev
+│   │   └── nl_orgs_baseline.source.yml        # sprouts-dev: nl-orgs.baseline
+│   ├── staging/                              # 1:1 cleaning per input
+│   ├── intermediate/                         # matching and deduplication across sources
+│   └── output_ports/v1/
+│       ├── ori_quality_publications.sql
+│       └── ori-quality-silver-publications-v1.odcs.yaml
+└── .github/workflows/data-product.yml</code></pre>
+
+<p>Keeping a copy of each upstream contract next to its source definition means <code>git log</code> tells you when a source changed under your feet. When you start a model, let the CLI generate the dbt YAML (columns, types, descriptions, an enforced dbt contract) with <code>datacontract export dbt-models</code>, so the contract stays the single source of truth. Then write the SQL. A gold model is usually just a plain aggregation over silver:</p>
+
+<pre><code>-- data_product_ori_quality_monitor/models/output_ports/v1/completeness_metrics.sql
+-- Governed by ori-quality-gold-completeness-metrics-v1.odcs.yaml
+with latest as (
+    -- only the latest snapshot per source; the timeline model uses all snapshots
+    select * from {{ ref('ori_quality_publications') }}
+    qualify snapshot_date = max(snapshot_date) over (partition by source)
+),
+fields as (
+    select *, 'doi'   as field, 'Has DOI'   as label, coalesce(doi_valid, false)    as ok from latest
+    union all
+    select *, 'orcid',          'Has ORCID',          coalesce(orcids_valid, false)       from latest
+    union all
+    select *, 'ror',            'Has ROR',            coalesce(rors_valid, false)         from latest
+    -- ... same pattern for grant_doi, issn, oa_status, corresponding_author
+)
+select
+    organisation_abbreviation,
+    organisation_ror_id,
+    source                                   as primary_source,
+    entity_table,
+    coalesce(publication_type, 'All Types')  as publication_type,
+    field,
+    label,
+    round(100.0 * count(*) filter (where ok) / count(*), 1) as percentage,
+    count(*)                                 as total,
+    count(*) filter (where ok)               as filled
+from fields
+group by grouping sets (
+    (organisation_abbreviation, organisation_ror_id, source, entity_table, publication_type, field, label),
+    (organisation_abbreviation, organisation_ror_id, source, entity_table, field, label)   -- the 'All Types' rows
+)</code></pre>
+
+<p>Testing happens at two levels. <code>dbt test</code> checks the internals, like uniqueness and not-null, and those tests change whenever you refactor. <code>datacontract test</code> checks each output port the way a consumer sees it: it reads the actual Parquet through DuckDB and runs the contract's quality rules. Those only change when the promise to the consumer changes, so they're the ones that should block a merge. On every pull request we also run <code>datacontract breaking</code>. A breaking change to a gold contract doesn't get merged without the dashboard owner saying yes, and ideally shows up as a new <code>v2</code> output port next to <code>v1</code>.</p>
+
+<h3>Let AI draft the pipelines</h3>
+
+<p>Here's a bonus of writing contracts first: they make a great brief for an AI coding assistant. A contract says exactly what the output must look like, which fields mean what, and which quality rules must pass. Give an assistant like Claude Code the gold or silver contract plus the contracts of its input ports, and it can draft the dbt models, the staging SQL and the tests for you. Our <a href="https://github.com/surf-ori/agentic-tools">agentic tools</a> already teach Claude how the ORI DuckLake is structured, so it knows which tables to join and how to unnest the nested columns. You still review every line, of course. But you don't have to take the AI's word for it: <code>datacontract test</code> tells you whether the draft actually keeps the promise in the contract. The contract is the spec, the AI writes the first version, the tests keep everyone honest. That makes the upfront time on contracts pay off even faster.</p>
+
+<h2>The infrastructure: SURF Object Store, Research Cloud and Kubernetes</h2>
+
+<p>All of this runs on SURF infrastructure, and the nice thing is that the stack needs surprisingly little of it. There are three pieces.</p>
+
+<p><strong>SURF Object Store</strong> is our S3-compatible storage and the home of the lake. The staging files, all Parquet files of bronze, silver and gold, and the DuckLake catalog file all live there. Anyone with DuckDB can read the published catalog straight from it, which is what the dashboard, the DuckLake Overview and the MCP server do.</p>
+
+<p><strong>SURF Research Cloud</strong> is the workbench. Data engineers spin up a workspace there to develop and try out pipelines, write contracts, run dbt and DuckDB against a development copy of the lake, and explore data in notebooks. Because everything is just files and SQL, a workspace is set up in minutes, and what works there works the same way in production.</p>
+
+<p>The <strong>Kubernetes cluster</strong> is where things run for real. The pipelines of each data product run there as scheduled containers: ingest, <code>dbt build</code>, <code>datacontract test</code>, and only when everything passes, publish the new snapshot to the catalog. The cluster is also a natural home for the services around the lake, like the dashboard and the MCP server. Each data product can have its own schedule and its own container, which fits nicely with the idea that each product has its own owner.</p>
+
+<h2>ORI Data Marketplace - (sort of)</h2>
+
+<p>Here's the fun part. We don't need to buy a marketplace tool, because almost by accident we already built something in that direction. It started as a by-product of the main deliverable, but it's a nice peek into what becomes possible once the lake is open.</p>
+
+<p>The <a href="https://surf-ori.github.io/ducklake-overview/">DuckLake Overview</a> (<a href="https://github.com/surf-ori/ducklake-overview">code on GitHub</a>) is a single HTML page that runs DuckDB in your browser. Anyone can scroll through the public ORI DuckLake: schemas, datasets, columns with descriptions and a quick profile, plus a query builder with shareable links. No account, no install. And the <a href="https://github.com/surf-ori/agentic-tools">ORI DuckLake MCP server</a>, part of our agentic tools, gives Claude or any other MCP-capable assistant read-only SQL access to the same lake. So people can just ask questions about the data in a chat. Together with the dashboard, that's three ways into the same data: a curated view, a browsable catalog and a conversation.</p>
+
+<p>Turning that into a real marketplace is a small step. We write the descriptions from each contract into the column comments of the DuckLake catalog, so the Overview and the MCP server show the same definitions as the contracts. And we publish the contracts themselves as HTML with <code>datacontract export html</code>, right next to the Overview. Bronze and silver contracts are just as useful for institutions and researchers who want to dig into the lake themselves. If it grows beyond that, tools like <a href="https://www.entropy-data.com/">Entropy Data</a> or <a href="https://open-metadata.org/">OpenMetadata</a> can take over. Because the contracts are standard YAML, nothing gets lost along the way.</p>
+
+<h2>Things I'm not sure about yet</h2>
+
+<p>Let's be honest about the rough edges. DuckLake is still young, and in the sprouts work we hit some instability with compound queries across schemas. So keep models simple, and check the dbt-duckdb and DuckLake release notes before pinning versions. The Data Contract CLI tests Parquet on S3 through DuckDB, but I haven't seen native DuckLake support yet, so for now each contract points at the Parquet location of its output port. Crossref isn't in sprouts-dev yet, while the dashboard counts on it. Keeping every snapshot in silver makes it grow with each harvest, so we'll need to think about partitioning early. And yes, contract-first costs some time up front. There will be moments where it feels slower than just building the table. In my experience you win that time back fast once three people work on the same pipeline.</p>
+
+<h2>So, where to start?</h2>
+
+<p>Pick one widget from the workshop screens. Write its gold contract together with whoever builds the front end. Work out which silver fields it needs, and build the thinnest possible path from one bronze source (OpenAlex is the obvious candidate) to that one chart. Run <code>datacontract test</code> in CI from the very first commit. Once that path works end to end, every next widget or source is repetition rather than invention.</p>
+
+<p>Want to read more? The <a href="https://www.datamesh-architecture.com/">data mesh architecture site</a>, the <a href="https://cli.datacontract.com/">Data Contract CLI docs</a> and Entropy Data's <a href="https://www.entropy-data.com/learn/data-products-with-dbt">dbt guide</a> are great places to start. And if something here doesn't fit the way you work, please tell me. That's what federated governance is for, after all.</p>
+
+<footer>Written for the BROCCOLI data engineers. Contract examples are best-guess drafts based on the prototype dashboard and the sprouts-dev catalog; the gold and silver tables do not exist yet. They follow ODCS v3.1.0 and pass <code>datacontract lint</code>; bucket paths are placeholders.</footer>
+</main>
+</body>
+</html>

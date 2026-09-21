@@ -1,0 +1,124 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-accuracy-conflict-records-v1
+name: Accuracy conflict records
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the record table in the Accuracy detail view: records where primary and compare source disagree,
+    with both values and in how many sources the primary value occurs.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app). The prototype hard-codes these records;
+    this shape is inferred from the UI.
+customProperties:
+- property: dashboardTab
+  value: Accuracy
+- property: prototypeDataset
+  value: Not in Data tab; inferred from the Accuracy tab
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-quality-monitoring-team
+schema:
+- name: accuracy_conflict_records
+  physicalType: table
+  properties:
+  - name: organisation_abbreviation
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationAbbreviation
+    description: Short name of the organisation, as shown in the filter bar.
+    examples:
+    - VU Amsterdam
+  - name: organisation_ror_id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterOrganisationRorId
+    description: ROR ID of the organisation without resolver prefix.
+    examples:
+    - 008xxew50
+  - name: primary_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterPrimarySource
+    description: Source selected as primary. One of CRIS, OpenAlex, OpenAIRE, Crossref.
+  - name: entity_table
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterEntityTable
+    description: Entity type. Currently only Publications.
+  - name: publication_type
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: filterType
+    description: Publication type filter. 'All Types' rows hold the pre-aggregated total over all types.
+  - name: compare_source
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Source compared against the primary source.
+  - name: field
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Compared field.
+  - name: id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Record ID in the primary source.
+  - name: title
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    description: Title.
+  - name: doi
+    logicalType: string
+    physicalType: VARCHAR
+    description: DOI of the record, if any.
+  - name: primary_value
+    logicalType: string
+    physicalType: VARCHAR
+    description: Value in the primary source.
+  - name: compare_value
+    logicalType: string
+    physicalType: VARCHAR
+    description: Value in the compare source.
+  - name: presence_in_n
+    logicalType: integer
+    physicalType: BIGINT
+    required: true
+    description: Number of sources (of 4) that contain the primary value.
+  quality:
+  - type: sql
+    description: One row per organisation_ror_id, primary_source, entity_table, publication_type, compare_source,
+      field, id.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT organisation_ror_id, primary_source, entity_table, publication_type,
+      compare_source, field, id FROM accuracy_conflict_records GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: presence_in_n between 1 and 4.
+    query: >-
+      SELECT COUNT(*) FROM accuracy_conflict_records WHERE presence_in_n NOT BETWEEN 1 AND 4
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/accuracy_conflict_records/*.parquet
+  format: parquet

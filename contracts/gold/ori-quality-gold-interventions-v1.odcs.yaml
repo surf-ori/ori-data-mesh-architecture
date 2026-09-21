@@ -1,0 +1,111 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: ori-quality-gold-interventions-v1
+name: Interventions
+version: 0.1.0
+status: draft
+domain: ori-quality
+dataProduct: ori_quality_monitor
+description:
+  purpose: >-
+    Feeds the "Interventions & Recommendations" panels: curated actions per tab and field, with effort,
+    impact and a link to act on.
+  usage: ORI Quality Monitoring dashboard. Read-only.
+  limitations: >-
+    Best-guess contract. This table does not exist yet in the sprouts-dev catalog. Columns follow the
+    ORI Quality Monitoring prototype (ori-dashboard.lovable.app). Curated reference data, maintained as
+    a dbt seed by the curation team.
+customProperties:
+- property: dashboardTab
+  value: All tabs
+- property: prototypeDataset
+  value: Interventions
+- property: presentInSproutsDev
+  value: false
+team:
+  name: ori-curation-team
+schema:
+- name: interventions
+  physicalType: table
+  properties:
+  - name: id
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: id
+    description: Intervention ID.
+    examples:
+    - acc-ror-1
+  - name: page
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: page
+    description: Dashboard tab. One of Coverage, Completeness, Enrichment, Accuracy.
+  - name: accuracy_field
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: accuracyField
+    description: Metadata field the intervention applies to.
+  - name: title
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: title
+    description: Short title of the action.
+  - name: description
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: description
+    description: What to do, in plain language.
+  - name: effort
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: effort
+    description: Low, Medium or High.
+  - name: impact
+    logicalType: string
+    physicalType: VARCHAR
+    required: true
+    businessName: impact
+    description: Low, Medium or High.
+  - name: action_url
+    logicalType: string
+    physicalType: VARCHAR
+    businessName: actionUrl
+    description: Link to the tool or documentation.
+  - name: action_label
+    logicalType: string
+    physicalType: VARCHAR
+    businessName: actionLabel
+    description: Label of the link.
+  quality:
+  - type: sql
+    description: One row per id.
+    query: >-
+      SELECT COUNT(*) FROM (SELECT id FROM interventions GROUP BY ALL HAVING COUNT(*) > 1)
+    mustBe: 0
+  - type: sql
+    description: Effort and impact use the agreed scale.
+    query: >-
+      SELECT COUNT(*) FROM interventions WHERE effort NOT IN ('Low','Medium','High') OR impact NOT IN
+      ('Low','Medium','High')
+    mustBe: 0
+  - type: sql
+    description: Only existing tabs.
+    query: >-
+      SELECT COUNT(*) FROM interventions WHERE page NOT IN ('Coverage','Completeness','Enrichment','Accuracy')
+    mustBe: 0
+slaProperties:
+- property: latency
+  value: 7
+  unit: d
+servers:
+- server: development
+  type: s3
+  endpointUrl: https://objectstore.surf.nl
+  location: s3://sprouts-dev/ori_quality/gold/interventions/*.parquet
+  format: parquet
